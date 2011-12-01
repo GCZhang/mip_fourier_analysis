@@ -11,18 +11,27 @@ import DOF_HANDLER
 import TRANSPORT
 import utils
 
-grid_x = np.array([0.,0.5,1.,0.,0.5,1.,0.,0.5,1.])
-grid_y = np.array([0.,0.,0.,0.5,0.5,0.5,1.,1.,1.])
+grid_x = np.array([0.,0.5,1.,0.,0.3,1.,0.,0.5,1.])
+grid_y = np.array([0.,0.,0.,0.5,0.3,0.5,1.,1.,1.])
 nx_cells = 2
 ny_cells = 2
-N = 10
+#grid_x = np.array([0.,0.5,1.,0.,0.5,1.,0.,0.5,1.])
+#grid_y = np.array([0.,0.,0.,0.5,0.5,0.5,1.,1.,1.])
+#nx_cells = 2
+#ny_cells = 2
+#grid_x = np.array([0.,1.,0.,1.])
+#grid_y = np.array([0.,0.,1.,1.])
+#nx_cells = 1
+#ny_cells = 1
+N = 20
 solver_type = "SI"
 condition_number = False
-sn = 4
+sn = 2
 L_max = 0
 galerkin = False
-fe_type = "BLD"    
-filename = "transport"
+fe_type = "PWLD"  
+prec = False
+filename = "transportbld"
 # First element of cross section is the total cross section. The rest is the
 # scattering cross section
 cross_section = np.array([1.,1.])
@@ -32,7 +41,8 @@ if grid_x.shape!=grid_y.shape :
 
 quad = QUADRATURE.QUADRATURE(sn,L_max,galerkin)
 dof_handler = DOF_HANDLER.DOF_HANDLER(nx_cells,ny_cells,grid_x,grid_y,fe_type)
-transport =  TRANSPORT.TRANSPORT(dof_handler,quad,cross_section,solver_type)
+transport = TRANSPORT.TRANSPORT(dof_handler,quad,cross_section,solver_type,
+    prec)
 
 lambda_x = np.linspace(0,2*np.pi/grid_x.max(),N)
 lambda_y = np.linspace(0,2*np.pi/grid_y.max(),N)

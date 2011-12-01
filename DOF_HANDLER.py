@@ -9,7 +9,9 @@
 """Contain the degrees of freedom handler"""
 
 import numpy as np
-import FINITE_ELEMENT as FE
+import utils
+import BLD
+import PWLD
 
 class DOF_HANDLER(object) :
   """Build the cells"""
@@ -49,5 +51,9 @@ class DOF_HANDLER(object) :
         x[3] = self.x[j+(i+1)*(self.nx_cells+1)]
         y[3] = self.y[j+(i+1)*(self.nx_cells+1)]
 
-        self.grid.append(FE.FINITE_ELEMENT(x.copy(),y.copy(),len(self.grid),
-          self.fe_type))
+        if self.fe_type=="BLD" :
+          self.grid.append(BLD.BLD(x.copy(),y.copy(),len(self.grid)))
+        elif self.fe_type=="PWLD" :
+          self.grid.append(PWLD.PWLD(x.copy(),y.copy(),len(self.grid)))
+        else :
+          utils.abort("Unknown discretization.")
