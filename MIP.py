@@ -50,6 +50,7 @@ class MIP(object) :
     beta = np.dot(invert,alpha)
     gamma = np.dot(projection,beta)
     self.preconditioner = gamma
+    np.savetxt('b.txt',self.mip_matrix)
 
 #----------------------------------------------------------------------------#
 
@@ -61,7 +62,7 @@ class MIP(object) :
 
     for cell in self.dof_handler.grid :
       self.Phase(cell)
-      if self.sigma_s>1 :
+      if self.sigma_s.shape[0]>1 :
         sigma_tr = self.sigma_t - self.sigma_s[1]
       else :
         sigma_tr = self.sigma_t
@@ -102,20 +103,20 @@ class MIP(object) :
               j1 = [0,1]
               j2 = [1,2]
 # Internal term (+,+)
-              self.mip_matrix[pos:pos+4,pos:pos+4] += 0.5*D_m*\
-                  np.dot(edge_deln_matrix,self.phase)
-              self.mip_matrix[pos:pos+4,pos:pos+4] += 0.5*D_m*\
-                  np.dot(edge_deln_matrix.transpose(),self.phase)
+            self.mip_matrix[pos:pos+4,pos:pos+4] += 0.5*D_m*\
+                np.dot(edge_deln_matrix,self.phase)
+            self.mip_matrix[pos:pos+4,pos:pos+4] += 0.5*D_m*\
+                np.dot(edge_deln_matrix.transpose(),self.phase)
 # Mixte term (-,+)
-              self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] -= 0.5*D_m*\
-                  np.dot(out_across_edge_deln_matrix,self.phase)
-              self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] += 0.5*D_p*\
-                  np.dot(in_across_edge_deln_matrix,self.phase)
+            self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] -= 0.5*D_m*\
+                np.dot(out_across_edge_deln_matrix,self.phase)
+            self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] += 0.5*D_p*\
+                np.dot(in_across_edge_deln_matrix,self.phase)
           else :
             if edge=='right' :
               edge_deln_matrix = cell.edge_deln_matrix['right']
-              in_across_edge_deln_matrix = cell.edge_deln_matrix['right']
-              out_across_edge_deln_matrix = cell.edge_deln_matrix['left']
+              in_across_edge_deln_matrix = cell.edge_deln_matrix['left']
+              out_across_edge_deln_matrix = cell.edge_deln_matrix['right']
               edge_mass = cell.right_edge_mass_matrix
               coupling_edge_mass = cell.right_coupling_edge_mass_matrix
               offset = 4
@@ -124,8 +125,8 @@ class MIP(object) :
               j2 = [0,3]
             else :
               edge_deln_matrix = cell.edge_deln_matrix['top']
-              in_across_edge_deln_matrix = cell.edge_deln_matrix['top']
-              out_across_edge_deln_matrix = cell.edge_deln_matrix['bottom']
+              in_across_edge_deln_matrix = cell.edge_deln_matrix['bottom']
+              out_across_edge_deln_matrix = cell.edge_deln_matrix['top']
               edge_mass = cell.top_edge_mass_matrix
               coupling_edge_mass = cell.top_coupling_edge_mass_matrix
               offset = 4*self.dof_handler.nx_cells
@@ -133,16 +134,15 @@ class MIP(object) :
               j1 = [2,3]
               j2 = [0,1]
 # Internal term (-,-)
-              self.mip_matrix[pos:pos+4,pos:pos+4] -= 0.5*D_m*\
-                  np.dot(edge_deln_matrix,self.phase)
-              self.mip_matrix[pos:pos+4,pos:pos+4] -= 0.5*D_m*\
-                  np.dot(edge_deln_matrix.transpose(),self.phase)
+            self.mip_matrix[pos:pos+4,pos:pos+4] -= 0.5*D_m*\
+                np.dot(edge_deln_matrix,self.phase)
+            self.mip_matrix[pos:pos+4,pos:pos+4] -= 0.5*D_m*\
+                np.dot(edge_deln_matrix.transpose(),self.phase)
 # Mixte term (+,-)
-              self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] += 0.5*D_m*\
-                  np.dot(in_across_edge_deln_matrix,self.phase)
-              self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] -= 0.5*D_p*\
-                  np.dot(out_across_edge_deln_matrix,self.phase)
-          
+            self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] += 0.5*D_m*\
+                np.dot(in_across_edge_deln_matrix,self.phase)
+            self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] -= 0.5*D_p*\
+                np.dot(out_across_edge_deln_matrix,self.phase)
 # First edge term
           for i in xrange(0,2) :
             for j in xrange(0,2) :

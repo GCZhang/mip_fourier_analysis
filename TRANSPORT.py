@@ -26,7 +26,7 @@ class TRANSPORT(object) :
     self.quad = quadrature
     self.sigma_t = cross_section[0]
     self.sigma_s = np.zeros(self.quad.n_mom)
-    self.sigma_s[0:cross_section.shape[0]] = cross_section[1:]
+    self.sigma_s[0:(cross_section.shape[0]-1)] = cross_section[1:]
     self.solver_type = solver_type
     self.preconditioner = prec
 
@@ -38,7 +38,6 @@ class TRANSPORT(object) :
 
     self.Build_transport_matrix(lambda_x,lambda_y)
     if self.preconditioner==False :
-     # print self.transport_matrix
       eigenvalues = scipy.linalg.eig(self.transport_matrix)
     else :
       mip = MIP.MIP(self.dof_handler,self.quad,self.sigma_t,self.sigma_s,
@@ -46,18 +45,14 @@ class TRANSPORT(object) :
       mip.Build_matrix()
       mip.Invert()
       identity = np.eye(4*self.dof_handler.n_cells*self.quad.n_mom)
-      matrix = identity-np.dot(identity+mip.preconditioner,identity-
-          self.transport_matrix)
+      matrix = self.transport_matrix+np.dot(mip.preconditioner,\
+          self.transport_matrix-identity)
       eigenvalues = scipy.linalg.eig(matrix)
-     # print mip.preconditioner
-     # print self.transport_matrix
-     # print matrix
-     # utils.abort()
     tmp = np.zeros_like(eigenvalues[0])
     for i in xrange(0,eigenvalues[0].shape[0]) :
       tmp[i] = np.sqrt(eigenvalues[0][i].real**2+eigenvalues[0][i].imag**2)
     eigenvalue = tmp.max()
-    
+     
     return eigenvalue
 
 #----------------------------------------------------------------------------#
@@ -88,7 +83,7 @@ class TRANSPORT(object) :
 
       for cell in self.dof_handler.grid :
         self.Phase(cell)
-        pos = 4*idir+4*cell.fe_id*self.quad.n_dir
+        pos = 4*cell.fe_id+4*self.dof_handler.n_cells*idir
         self.L[pos:pos+4,pos:pos+4] += np.dot(-omega_x*cell.x_grad_matrix-
             omega_y*cell.y_grad_matrix+self.sigma_t*cell.mass_matrix,self.phase)
 
@@ -118,11 +113,11 @@ class TRANSPORT(object) :
         if n_dot_omega<0.0 :
           if cell.y[0]==self.dof_handler.bottom :
             offset = 4*self.dof_handler.nx_cells*\
-                (self.dof_handler.ny_cells-1)*self.quad.n_dir
+                (self.dof_handler.ny_cells-1)
             self.Phase(self.dof_handler.grid[cell.fe_id+\
                 (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells])
           else :
-            offset = -4*self.dof_handler.nx_cells*self.quad.n_dir
+            offset = -4*self.dof_handler.nx_cells
             self.Phase(self.dof_handler.grid[cell.fe_id-self.dof_handler.nx_cells])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.bottom_up,self.phase)
@@ -137,11 +132,11 @@ class TRANSPORT(object) :
 # Upwind
         if n_dot_omega<0.0 :
           if cell.x[1]==self.dof_handler.right :
-            offset = -4*(self.dof_handler.nx_cells-1)*self.quad.n_dir
+            offset = -4*(self.dof_handler.nx_cells-1)
             self.Phase(self.dof_handler.grid[cell.fe_id-\
                 (self.dof_handler.nx_cells-1)])
           else :
-            offset = 4*self.quad.n_dir
+            offset = 4
             self.Phase(self.dof_handler.grid[cell.fe_id+1])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.right_up,self.phase)
@@ -157,11 +152,11 @@ class TRANSPORT(object) :
         if n_dot_omega<0.0 :
           if cell.y[3]==self.dof_handler.top :
             offset = -4*self.dof_handler.nx_cells*\
-                (self.dof_handler.ny_cells-1)*self.quad.n_dir
+                (self.dof_handler.ny_cells-1)
             self.Phase(self.dof_handler.grid[cell.fe_id-\
                 (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells])
           else :
-            offset = 4*self.dof_handler.nx_cells*self.quad.n_dir
+            offset = 4*self.dof_handler.nx_cells
             self.Phase(self.dof_handler.grid[cell.fe_id+\
                 self.dof_handler.nx_cells])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
@@ -176,11 +171,11 @@ class TRANSPORT(object) :
 # Upwind
         if n_dot_omega<0.0 :
           if cell.x[0]==self.dof_handler.left :
-            offset = 4*(self.dof_handler.nx_cells-1)*self.quad.n_dir
+            offset = 4*(self.dof_handler.nx_cells-1)
             self.Phase(self.dof_handler.grid[cell.fe_id+\
                 (self.dof_handler.nx_cells-1)])
           else :
-            offset = -4*self.quad.n_dir
+            offset = -4
             self.Phase(self.dof_handler.grid[cell.fe_id-1])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.left_up,self.phase)
@@ -190,11 +185,22 @@ class TRANSPORT(object) :
           self.L[pos:pos+4,pos:pos+4] += n_dot_omega*\
               np.dot(cell.left_down,self.phase)
 
-
-    identity = np.eye(4*self.dof_handler.n_cells)
+    identity1 = np.eye(4)
+    identity2 = np.eye(self.dof_handler.n_cells)
     if self.solver_type=="SI" :
-      D = scipy.sparse.kron(identity,self.quad.D)
-      D = D.toarray()
+      D = scipy.sparse.kron(identity1,self.quad.D)
+      D2 = D.toarray()
+      D = np.zeros((4*self.dof_handler.n_cells*self.quad.n_mom,
+        4*self.dof_handler.n_cells*self.quad.n_dir))
+      for i in xrange(0,self.dof_handler.n_cells) :
+        n = self.dof_handler.n_cells
+        offset = 4*i
+        off = 4*n
+        D[i*n,offset+0:offset+4] = D2[0,0:4]
+        D[i*n+1,offset+off:offset+off+4] = D2[1,4:8]
+        D[i*n+2,offset+2*off:offset+2*off+4] = D2[2,8:12]
+        D[i*n+3,offset+3*off:offset+3*off+4] = D2[3,12:16]
+
       self.transport_matrix = np.dot(D,np.dot(scipy.linalg.inv(self.L),
         self.scattering_matrix))
     else :
@@ -213,19 +219,18 @@ class TRANSPORT(object) :
     d_unknowns = 4*self.quad.n_dir
     m_size = self.dof_handler.n_cells*m_unknowns
     d_size = self.dof_handler.n_cells*d_unknowns
+    matrix = np.zeros((m_size,m_size),dtype=complex)
     self.scattering_matrix = np.zeros((d_size,m_size),dtype=complex)
     for cell in self.dof_handler.grid :
       self.Phase(cell)
-      matrix = np.zeros((m_unknowns,m_unknowns),dtype=complex)
       for mom in xrange(0,self.quad.n_mom) :
-        pos = 4*mom
+        pos = 4*mom+4*cell.fe_id*self.quad.n_mom
         matrix[pos:pos+4,pos:pos+4] = self.sigma_s[mom]*\
             np.dot(cell.mass_matrix,self.phase)
-      identity = np.eye(4)
-      M = scipy.sparse.kron(identity,self.quad.M)
-      M = M.toarray()
-      self.scattering_matrix[cell.fe_id*d_unknowns:(cell.fe_id+1)*d_unknowns,
-          cell.fe_id*m_unknowns:(cell.fe_id+1)*m_unknowns] += np.dot(M,matrix)
+    identity = np.eye(4*self.dof_handler.n_cells)
+    M = scipy.sparse.kron(self.quad.M,identity)
+    M = M.toarray()
+    self.scattering_matrix = np.dot(M,matrix)
 
 #----------------------------------------------------------------------------#
 

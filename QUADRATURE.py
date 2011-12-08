@@ -12,6 +12,7 @@ import numpy as np
 import scipy.special.orthogonal
 import scipy.linalg
 import scipy.misc.common as sci
+import utils
 
 class QUADRATURE(object)  :
   """Build the quadrature (Gauss-Legendre-Chebyshev) and the Galerkin

@@ -11,25 +11,27 @@ import DOF_HANDLER
 import TRANSPORT
 import utils
 
-grid_x = np.array([0.,0.5,1.,0.,0.3,1.,0.,0.5,1.])
-grid_y = np.array([0.,0.,0.,0.5,0.3,0.5,1.,1.,1.])
-nx_cells = 2
-ny_cells = 2
 #grid_x = np.array([0.,0.5,1.,0.,0.5,1.,0.,0.5,1.])
 #grid_y = np.array([0.,0.,0.,0.5,0.5,0.5,1.,1.,1.])
 #nx_cells = 2
 #ny_cells = 2
-#grid_x = np.array([0.,1.,0.,1.])
-#grid_y = np.array([0.,0.,1.,1.])
-#nx_cells = 1
-#ny_cells = 1
-N = 20
+#grid_x = np.array([0.,1.,2.,3.,0.,1.,2.,3.,0.,1.,2.,3.,0.,1.,2.,3.])
+#grid_y = np.array([0.,0.,0.,0.,1.,1.,1.,1.,2.,2.,2.,2.,3.,3.,3.,3.])
+#nx_cells = 3
+#ny_cells = 3
+grid_x = np.array([0.,1.,0.,1.])
+grid_y = np.array([0.,0.,1.,1.])
+nx_cells = 1
+ny_cells = 1
+N = 3
 solver_type = "SI"
 condition_number = False
 sn = 2
+# CANNOT BE DIFFERENT THAT 0. Otherwise problem when D and M have to be
+# multiplied
 L_max = 0
 galerkin = False
-fe_type = "PWLD"  
+fe_type ="BLD"  
 prec = False
 filename = "transportbld"
 # First element of cross section is the total cross section. The rest is the
