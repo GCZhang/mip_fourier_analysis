@@ -29,13 +29,16 @@ class TRANSPORT(object) :
     self.sigma_s[0:(cross_section.shape[0]-1)] = cross_section[1:]
     self.solver_type = solver_type
     self.preconditioner = prec
+    self.absolute_phase = True
 
 #----------------------------------------------------------------------------#
 
-  def Compute_largest_eigenvalue(self,lambda_x,lambda_y) :
+  def Compute_largest_eigenvalue(self,lambdas,sign=None) :
     """Compute the largest (magnitude) eigenvalue for a given lambda_x and
     lambda_y."""
 
+    lambda_x = lambdas[0]
+    lambda_y = lambdas[1]
     self.Build_transport_matrix(lambda_x,lambda_y)
     if self.preconditioner==False :
       eigenvalues = scipy.linalg.eig(self.transport_matrix)
@@ -52,6 +55,8 @@ class TRANSPORT(object) :
     for i in xrange(0,eigenvalues[0].shape[0]) :
       tmp[i] = np.sqrt(eigenvalues[0][i].real**2+eigenvalues[0][i].imag**2)
     eigenvalue = tmp.max()
+    if sign is not None :
+      eigenvalue = -eigenvalue
      
     return eigenvalue
 
@@ -83,8 +88,14 @@ class TRANSPORT(object) :
 
       for cell in self.dof_handler.grid :
         pos = 4*cell.fe_id+4*self.dof_handler.n_cells*idir
-        self.L[pos:pos+4,pos:pos+4] += -omega_x*cell.x_grad_matrix-\
-            omega_y*cell.y_grad_matrix+self.sigma_t*cell.mass_matrix
+        if self.absolute_phase==False :
+          self.L[pos:pos+4,pos:pos+4] += -omega_x*cell.x_grad_matrix-\
+              omega_y*cell.y_grad_matrix+self.sigma_t*cell.mass_matrix
+        else :  
+          self.Absolute_phase(cell)
+          self.L[pos:pos+4,pos:pos+4] += np.dot(-omega_x*cell.x_grad_matrix-\
+              omega_y*cell.y_grad_matrix+self.sigma_t*cell.mass_matrix,\
+              self.phase)
 
 # Compute the normal of each side
         x = cell.y[1]-cell.y[0]
@@ -113,18 +124,33 @@ class TRANSPORT(object) :
           if cell.y[0]==self.dof_handler.bottom :
             offset = 4*self.dof_handler.nx_cells*\
                 (self.dof_handler.ny_cells-1)
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id+\
-                (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells],
-                "bottom")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id+\
+                  (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells],
+                  "bottom")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id+\
+                  (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells],
+                  cell,"bottom")
           else :
+# This phase matrix is the identity
             offset = -4*self.dof_handler.nx_cells
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id-\
-                self.dof_handler.nx_cells],"bottom")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id-\
+                  self.dof_handler.nx_cells],"bottom")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id-\
+                  self.dof_handler.nx_cells])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.bottom_up,self.phase)
 # Downwind 
         else :
-          self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.bottom_down
+          if self.absolute_phase==False :
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.bottom_down
+          else :  
+            self.Absolute_phase(cell)
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*np.dot(
+                cell.bottom_down,self.phase)
 
 # Right term
         n_dot_omega = np.dot(omega,r_normal)
@@ -132,16 +158,30 @@ class TRANSPORT(object) :
         if n_dot_omega<0.0 :
           if cell.x[1]==self.dof_handler.right :
             offset = -4*(self.dof_handler.nx_cells-1)
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id-\
-                (self.dof_handler.nx_cells-1)],"right")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id-\
+                  (self.dof_handler.nx_cells-1)],"right")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id-\
+                  (self.dof_handler.nx_cells-1)],cell,"right")
           else :
+# This phase matrix is the identity
             offset = 4
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id+1],"right")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id+1],"right")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id+1])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.right_up,self.phase)
 # Downwind
         else :
-          self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.right_down
+          if self.absolute_phase==False :
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.right_down
+          else :
+            self.Absolute_phase(cell)
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*np.dot(
+                cell.right_down,self.phase)
+
 # Top term
         n_dot_omega = np.dot(omega,t_normal)  
 # Upwind
@@ -149,33 +189,62 @@ class TRANSPORT(object) :
           if cell.y[3]==self.dof_handler.top :
             offset = -4*self.dof_handler.nx_cells*\
                 (self.dof_handler.ny_cells-1)
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id-\
-                (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells],"top")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id-\
+                  (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells],"top")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id-\
+                  (self.dof_handler.ny_cells-1)*self.dof_handler.nx_cells],
+                  cell,"top")
           else :
+# This phase matrix is the identity
             offset = 4*self.dof_handler.nx_cells
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id+\
-                self.dof_handler.nx_cells],"top")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id+\
+                  self.dof_handler.nx_cells],"top")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id+\
+                  self.dof_handler.nx_cells])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.top_up,self.phase)
 # Downwind 
         else :
-          self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.top_down
+          if self.absolute_phase==False :
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.top_down
+          else :
+            self.Absolute_phase(cell)
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*np.dot(cell.top_down,
+                self.phase)
+
 # Left term
         n_dot_omega = np.dot(omega,l_normal)
 # Upwind
         if n_dot_omega<0.0 :
           if cell.x[0]==self.dof_handler.left :
             offset = 4*(self.dof_handler.nx_cells-1)
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id+\
-                (self.dof_handler.nx_cells-1)],"left")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id+\
+                  (self.dof_handler.nx_cells-1)],"left")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id+\
+                  (self.dof_handler.nx_cells-1)],cell,"left")
           else :
+# This phase matrix is the identity
             offset = -4
-            self.Phase(cell,self.dof_handler.grid[cell.fe_id-1],"left")
+            if self.absolute_phase==False :
+              self.Phase(cell,self.dof_handler.grid[cell.fe_id-1],"left")
+            else :
+              self.Absolute_phase(self.dof_handler.grid[cell.fe_id-1])
           self.L[pos:pos+4,pos+offset:pos+offset+4] += n_dot_omega*\
               np.dot(cell.left_up,self.phase)
 # Downwind
         else :
-          self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.left_down
+          if self.absolute_phase==False :
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*cell.left_down
+          else :
+            self.Absolute_phase(cell)
+            self.L[pos:pos+4,pos:pos+4] += n_dot_omega*np.dot(cell.left_down,
+                self.phase)
 
     identity = np.eye(4*self.dof_handler.n_cells)
     if self.solver_type=="SI" :
@@ -202,9 +271,17 @@ class TRANSPORT(object) :
     matrix = np.zeros((m_size,m_size),dtype=complex)
     self.scattering_matrix = np.zeros((d_size,m_size),dtype=complex)
     for cell in self.dof_handler.grid :
-      for mom in xrange(0,self.quad.n_mom) :
-        pos = 4*mom+4*cell.fe_id*self.quad.n_mom
-        matrix[pos:pos+4,pos:pos+4] = self.sigma_s[mom]*cell.mass_matrix
+      if self.absolute_phase==False :
+       for mom in xrange(0,self.quad.n_mom) :
+         pos = 4*mom+4*cell.fe_id*self.quad.n_mom
+         matrix[pos:pos+4,pos:pos+4] = self.sigma_s[mom]*cell.mass_matrix
+      else :
+        self.Absolute_phase(cell)
+        for mom in xrange(0,self.quad.n_mom) :
+          pos = 4*mom+4*cell.fe_id*self.quad.n_mom
+          matrix[pos:pos+4,pos:pos+4] = self.sigma_s[mom]*\
+              np.dot(cell.mass_matrix,self.phase)
+
     identity = np.eye(4*self.dof_handler.n_cells)
     M = scipy.sparse.kron(self.quad.M,identity)
     M = M.toarray()
@@ -213,7 +290,7 @@ class TRANSPORT(object) :
 #----------------------------------------------------------------------------#
 
   def Phase(self,cell_1,cell_2,side) :
-    """Compute the phase matrix for a given matrix."""
+    """Compute the phase matrix."""
 
     delta_x = np.zeros(4)
     delta_y = np.zeros(4)
@@ -245,3 +322,47 @@ class TRANSPORT(object) :
     self.phase[1,1] = np.exp((self.lambda_x*delta_x[1]+self.lambda_y*delta_y[1])*1j)
     self.phase[2,2] = np.exp((self.lambda_x*delta_x[2]+self.lambda_y*delta_y[2])*1j)
     self.phase[3,3] = np.exp((self.lambda_x*delta_x[3]+self.lambda_y*delta_y[3])*1j)
+
+#----------------------------------------------------------------------------#
+
+  def Absolute_phase(self,cell,cell_2=None,side=None) :
+    """Compute the absolute phase matrix."""
+
+    self.phase = np.zeros((4,4),dtype=complex)   
+    if side==None :
+      self.phase[0,0] = np.exp((self.lambda_x*cell.x[0]+self.lambda_y*cell.y[0])*1j)
+      self.phase[1,1] = np.exp((self.lambda_x*cell.x[1]+self.lambda_y*cell.y[1])*1j)
+      self.phase[2,2] = np.exp((self.lambda_x*cell.x[2]+self.lambda_y*cell.y[2])*1j)
+      self.phase[3,3] = np.exp((self.lambda_x*cell.x[3]+self.lambda_y*cell.y[3])*1j)
+    elif side=="bottom" :
+      delta_y0 = cell.y[3]-cell.y[0]
+      delta_y1 = cell.y[2]-cell.y[1]
+      self.phase[0,0] = np.exp((self.lambda_x*cell.x[0]-self.lambda_y*delta_y0)*1j)
+      self.phase[1,1] = np.exp((self.lambda_x*cell.x[1]-self.lambda_y*delta_y1)*1j)
+      self.phase[2,2] = np.exp(self.lambda_x*cell.x[2]*1j)
+      self.phase[3,3] = np.exp(self.lambda_x*cell.x[3]*1j)
+    elif side=="right" :
+      x_0 = cell_2.x[1]
+      x_1 = cell_2.x[1]+cell.x[1]-cell.x[0]
+      x_2 = cell_2.x[2]+cell.x[2]-cell.x[3]
+      x_3 = cell_2.x[2]
+      self.phase[0,0] = np.exp((self.lambda_x*x_0+self.lambda_y*cell.y[0])*1j)
+      self.phase[1,1] = np.exp((self.lambda_x*x_1+self.lambda_y*cell.y[1])*1j)
+      self.phase[2,2] = np.exp((self.lambda_x*x_2+self.lambda_y*cell.y[2])*1j)
+      self.phase[3,3] = np.exp((self.lambda_x*x_3+self.lambda_y*cell.y[3])*1j)
+    elif side=="top" :
+      y_0 = cell_2.y[3]
+      y_1 = cell_2.y[2]
+      y_2 = cell_2.y[2]+cell.y[2]-cell.y[1]
+      y_3 = cell_2.y[3]+cell.y[3]-cell.y[0]
+      self.phase[0,0] = np.exp((self.lambda_x*cell.x[0]+self.lambda_y*y_0)*1j)
+      self.phase[1,1] = np.exp((self.lambda_x*cell.x[1]+self.lambda_y*y_1)*1j)
+      self.phase[2,2] = np.exp((self.lambda_x*cell.x[2]+self.lambda_y*y_2)*1j)
+      self.phase[3,3] = np.exp((self.lambda_x*cell.x[3]+self.lambda_y*y_3)*1j)
+    else :
+      delta_x0 = cell.x[1]-cell.x[0]
+      delta_x3 = cell.x[2]-cell.x[3]
+      self.phase[0,0] = np.exp((-delta_x0*self.lambda_x+self.lambda_y*cell.y[0])*1j)
+      self.phase[1,1] = np.exp(self.lambda_y*cell.y[1]*1j)
+      self.phase[2,2] = np.exp(self.lambda_y*cell.y[2]*1j)
+      self.phase[3,3] = np.exp((-delta_x3*self.lambda_x+self.lambda_y*cell.y[3])*1j)
