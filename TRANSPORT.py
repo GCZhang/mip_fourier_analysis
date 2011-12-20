@@ -359,10 +359,12 @@ class TRANSPORT(object) :
       self.phase[1,1] = np.exp((self.lambda_x*cell.x[1]+self.lambda_y*y_1)*1j)
       self.phase[2,2] = np.exp((self.lambda_x*cell.x[2]+self.lambda_y*y_2)*1j)
       self.phase[3,3] = np.exp((self.lambda_x*cell.x[3]+self.lambda_y*y_3)*1j)
-    else :
+    elif side=="left" :
       delta_x0 = cell.x[1]-cell.x[0]
       delta_x3 = cell.x[2]-cell.x[3]
       self.phase[0,0] = np.exp((-delta_x0*self.lambda_x+self.lambda_y*cell.y[0])*1j)
       self.phase[1,1] = np.exp(self.lambda_y*cell.y[1]*1j)
       self.phase[2,2] = np.exp(self.lambda_y*cell.y[2]*1j)
       self.phase[3,3] = np.exp((-delta_x3*self.lambda_x+self.lambda_y*cell.y[3])*1j)
+    else :
+      utils.Abort("Unknown side")

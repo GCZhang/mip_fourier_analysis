@@ -13,20 +13,18 @@ import DOF_HANDLER
 import TRANSPORT
 import utils
 
-grid_x = np.array([0.,0.25,0.5,0.75,1.,0.,0.25,0.5,0.75,1.,0.,0.25,0.5,0.75,1.,
-  0.,0.25,0.5,0.75,1.,0.,0.25,0.5,0.75,1.])
-grid_y = np.array([0.,0.,0.,0.,0.,0.25,0.25,0.25,0.25,0.25,0.5,0.5,0.5,0.5,0.5,
-  0.75,0.75,0.75,0.75,0.75,1.,1.,1.,1.,1.])
-nx_cells = 4
-ny_cells = 4
+grid_x = np.array([0.,0.5,1.,0.,0.5,1.,0.,0.5,1.])
+grid_y = np.array([0.,0.,0.,0.5,0.5,0.5,1.,1.,1.])
+nx_cells = 2
+ny_cells = 2
 grid_x = np.array([0.,1.,0.,1.])
 grid_y = np.array([0.,0.,1.,1.])
 nx_cells = 1
 ny_cells = 1
-N = 5
+N = 3
 solver_type = "SI"
 condition_number = False
-sn = 2
+sn = 16
 # CANNOT BE DIFFERENT THAT 0. Otherwise problem when D and M have to be
 # multiplied
 L_max = 0
@@ -34,11 +32,11 @@ galerkin = False
 fe_type ="BLD"  
 quad_type = "GLC"
 #quad_type = "LS"
-prec = False
+prec = True
 filename = "transport"
 # First element of cross section is the total cross section. The rest is the
 # scattering cross section
-cross_section = np.array([1,0.999999])
+cross_section = np.array([0.001,0.000999999])
 
 if grid_x.shape!=grid_y.shape :
   utils.abort("size of grid_x is not equal to size grid_y.")
@@ -63,7 +61,6 @@ if condition_number==True :
 for i in xrange(0,N) :
   for j in xrange(0,N) :
     lambdas = np.array([lambda_x[j],lambda_y[i]])
-    print lambdas
     eig = transport.Compute_largest_eigenvalue(lambdas)
     print eig
     rho[i,j] = np.abs(eig.real)
@@ -71,13 +68,19 @@ for i in xrange(0,N) :
       kappa[i,j] = transport.Compute_condition_number()
 
 bounds = [(0.,2.*np.pi),(0.,2.*np.pi)]
-initial_guess = np.array([0.,0.])
-[x,fval,d] = scipy.optimize.fmin_l_bfgs_b(
-    transport.Compute_largest_eigenvalue,initial_guess,args="m",approx_grad=1,
-    bounds=bounds)
+fval = 0.
+for i in xrange(0,5) :
+  rand = np.random.rand(2,1)
+  initial_guess = np.array([rand[0,0],rand[1,0]])
+  [x2,fval2,d] = scipy.optimize.fmin_l_bfgs_b(
+      transport.Compute_largest_eigenvalue,initial_guess,args="m",approx_grad=1,
+      bounds=bounds)
+  if fval2<fval :
+    x = x2.copy()
+    fval = fval2
+  print d['warnflag'],d['funcalls'],d['task']
 print x
 print -fval
-print d['warnflag'],d['funcalls'],d['task']
 
 if condition_number==False :
   np.savez(filename,lambda_x=lambda_x,lambda_y=lambda_y,rho=rho)      
