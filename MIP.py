@@ -43,7 +43,7 @@ class MIP(object) :
       fe_id = cell.fe_id
       b[4*fe_id:4*fe_id+4,4*fe_id:4*fe_id+4] += self.sigma_s[0]*\
           np.dot(cell.mass_matrix,self.phase)
-      for i in xrange(0,4) :
+      for i in range(0, 4) :
         restriction[i,i+fe_id*4*self.quad.n_mom] = 1.
         projection[i+fe_id*4*self.quad.n_mom,i] = 1.
 
@@ -157,8 +157,8 @@ class MIP(object) :
             self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] -= 0.5*D_p*\
                 np.dot(out_across_edge_deln_matrix.transpose(),self.phase)
 # First edge term
-          for i in xrange(0,2) :
-            for j in xrange(0,2) :
+          for i in range(0, 2) :
+            for j in range(0, 2) :
               self.mip_matrix[pos+i1[i],pos+j1[j]] += K*edge_mass[i,j]*\
                   cell_phase[j1[j],j1[j]]
               self.mip_matrix[pos+i1[i],pos+offset+j2[j]] -=\
@@ -241,8 +241,8 @@ class MIP(object) :
             self.mip_matrix[pos:pos+4,pos+offset:pos+offset+4] -= 0.5*D_p*\
                 np.dot(out_across_edge_deln_matrix.transpose(),self.phase)
 # First edge term
-          for i in xrange(0,2) :
-            for j in xrange(0,2) :
+          for i in range(0, 2) :
+            for j in range(0, 2) :
               self.mip_matrix[pos+i1[i],pos+j1[j]] += K*edge_mass[i,j]*\
                   cell_phase[j1[j],j1[j]]
               self.mip_matrix[pos+i1[i],pos+offset+j2[j]] -=\

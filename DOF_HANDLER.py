@@ -40,8 +40,8 @@ class DOF_HANDLER(object) :
     y = np.zeros((4))
     self.grid = []
 
-    for i in xrange(0,self.ny_cells) :
-      for j in xrange(0,self.nx_cells) :
+    for i in range(0, self.ny_cells) :
+      for j in range(0, self.nx_cells) :
         x[0] = self.x[j+i*(self.nx_cells+1)]
         y[0] = self.y[j+i*(self.nx_cells+1)]
         x[1] = self.x[j+1+i*(self.nx_cells+1)]

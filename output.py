@@ -10,23 +10,39 @@
 condition number."""
 
 import numpy as np
-from mayavi import mlab
+import pylab
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
-def Create_figure(filename,condition_number=False) :
-  """Open mayavi."""
+def Create_figure(filename, condition_number = False):
+    """Create a figure in mplot3d."""
 
 # Load the mesh, the spectral radius and the condition number
-  data = np.load(filename+'.npz')
-  lambda_x = data['lambda_x']
-  lambda_y = data['lambda_y']
-  rho = data['rho']
+    data = np.load(filename+'.npz')
+    lambda_x = data['lambda_x']
+    lambda_y = data['lambda_y']
+    rho = data['rho']
 
-  mlab.surf(lambda_x,lambda_y,rho,name='Largest eigenvalues')
-  mlab.colorbar(orientation='vertical')
-  mlab.xlabel("lambda_x")
-  mlab.ylabel("lambda_y")
-  mlab.view(0,0,distance='auto',focalpoint='auto')
-  
-  if condition_number==True :
-    kappa = data['kappa']
-    mlab.surf(lambda_x,lambda_y,kappa,kappa,name='Condition number')
+    x, y = np.meshgrid(lambda_x, lambda_y)
+    z = np.array(rho)
+
+    fig_1 = pylab.figure(1)
+    ax_1 = fig_1.add_subplot(111,projection='3d')
+    surf_1 = ax_1.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.coolwarm)
+    ax_1.set_zlim(0.99*z.min(),1.01*z.max())
+    pylab.title('Largest eigenvalues')
+    pylab.xlabel("lambda_x")
+    pylab.ylabel("lambda_y")
+    fig_1.colorbar(surf_1, shrink=0.5)
+    fig_1.show()
+    
+    if condition_number == True:
+        fig_2 = pylab.figure(2)
+        ax_2 = fig_2.add_subplot(111,projection='3d')
+        kappa = data['kappa']
+        surf_2 = ax_2.plot_surface(x, y, kappa, rstride=1, cstride=1, cmap=cm.coolwarm)
+        pylab.title('Condition number')
+        pylab.xlabel("lambda_x")
+        pylab.ylabel("lambda_y")
+        fig_2.colorbar(surf_1, shrink=0.5)
+        fig_2.show()

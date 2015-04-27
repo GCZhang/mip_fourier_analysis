@@ -32,7 +32,7 @@ class GLC(QUAD.QUADRATURE) :
     [self.azith_nodes,self.azith_weight] = self.Chebyshev()
 
     self.cos_theta = np.zeros((self.sn/2,1))
-    for i in xrange(0,self.sn/2) :
+    for i in range(0, int(self.sn/2)) :
       self.cos_theta[i] = np.real(self.polar_nodes[self.sn/2+i])
     self.sin_theta = np.sqrt(1-self.cos_theta**2)
     
@@ -41,8 +41,8 @@ class GLC(QUAD.QUADRATURE) :
 
     pos = 0
     offset = 0
-    for i in xrange(0,self.sn/2) :
-      for j in xrange(0,self.sn/2-i) :
+    for i in range(0, int(self.sn/2)) :
+      for j in range(0, int(self.sn/2-i)) :
         self.omega[pos,0] = self.sin_theta[i]*np.cos(self.azith_nodes[j+offset])
         self.omega[pos,1] = self.sin_theta[i]*np.sin(self.azith_nodes[j+offset])
         self.omega[pos,2] = self.cos_theta[i]
@@ -57,14 +57,14 @@ class GLC(QUAD.QUADRATURE) :
     """Build the Chebyshev quadrature in a quadrant."""
 
     size = 0
-    for i in xrange(1,self.sn/2+1) :
+    for i in range(1, int(self.sn/2+1)) :
       size += i
     nodes = np.zeros((size,1))
     weight = np.zeros((size))
 
     pos = 0
-    for i in xrange(0,self.sn/2) :
-      for j in xrange(0,self.sn/2-i) :
+    for i in range(0, int(self.sn/2)) :
+      for j in range(0, int(self.sn/2-i)) :
         nodes[pos] = (np.pi/2.)/(self.sn/2-i)*j+(np.pi/4.)/(self.sn/2-i)
         weight[pos] = np.pi/(2.*(self.sn/2-i))
         pos += 1

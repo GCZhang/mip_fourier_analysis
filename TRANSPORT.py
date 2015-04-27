@@ -52,7 +52,7 @@ class TRANSPORT(object) :
           self.transport_matrix-identity)
       eigenvalues = scipy.linalg.eig(matrix)
     tmp = np.zeros_like(eigenvalues[0])
-    for i in xrange(0,eigenvalues[0].shape[0]) :
+    for i in range(0, eigenvalues[0].shape[0]) :
       tmp[i] = np.sqrt(eigenvalues[0][i].real**2+eigenvalues[0][i].imag**2)
     eigenvalue = tmp.max()
     if sign is not None :
@@ -81,7 +81,7 @@ class TRANSPORT(object) :
     self.L = np.zeros((d_size,d_size),dtype=complex)
     self.Build_scattering_matrix()
 
-    for idir in xrange(0,self.quad.n_dir) :
+    for idir in range(0, self.quad.n_dir) :
 # Direction alias
       omega_x = self.quad.omega[idir,0]
       omega_y = self.quad.omega[idir,1]
@@ -272,12 +272,12 @@ class TRANSPORT(object) :
     self.scattering_matrix = np.zeros((d_size,m_size),dtype=complex)
     for cell in self.dof_handler.grid :
       if self.absolute_phase==False :
-       for mom in xrange(0,self.quad.n_mom) :
+       for mom in range(0, self.quad.n_mom) :
          pos = 4*mom+4*cell.fe_id*self.quad.n_mom
          matrix[pos:pos+4,pos:pos+4] = self.sigma_s[mom]*cell.mass_matrix
       else :
         self.Absolute_phase(cell)
-        for mom in xrange(0,self.quad.n_mom) :
+        for mom in range(0, self.quad.n_mom) :
           pos = 4*mom+4*cell.fe_id*self.quad.n_mom
           matrix[pos:pos+4,pos:pos+4] = self.sigma_s[mom]*\
               np.dot(cell.mass_matrix,self.phase)
