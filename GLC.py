@@ -11,14 +11,13 @@
 import numpy as np
 import scipy.special.orthogonal
 import QUADRATURE as QUAD
-import utils
 
-class GLC(QUAD.QUADRATURE) :
+class GLC(QUAD.QUADRATURE):
   """Build the Gauss-Legendre-Chebyshev quadrature of arbitrary order."""
 
   def __init__(self,sn,L_max,galerkin) :
 
-    super(GLC,self).__init__(sn,L_max,galerkin)
+    QUAD.QUADRATURE.__init__(self,sn,L_max,galerkin)
 
 #----------------------------------------------------------------------------#
 

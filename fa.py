@@ -11,7 +11,6 @@ import GLC
 import LS
 import DOF_HANDLER
 import TRANSPORT
-import utils
 
 grid_x = np.array([0.,0.5,1.,0.,0.5,1.,0.,0.5,1.])
 grid_y = np.array([0.,0.,0.,0.5,0.5,0.5,1.,1.,1.])
@@ -22,33 +21,32 @@ grid_y = np.array([0.,0.,1.,1.])
 nx_cells = 1
 ny_cells = 1
 N = 10
-solver_type = "SI"
+solver_type = 'SI'
 condition_number = False
 sn = 16
-# CANNOT BE DIFFERENT THAT 0. Otherwise problem when D and M have to be
-# multiplied
 L_max = 0
 galerkin = False
-fe_type ="BLD"  
-quad_type = "GLC"
-#quad_type = "LS"
+fe_type = 'BLD'
+quad_type = 'GLC'
+#quad_type = 'LS'
 prec = True
-filename = "transport"
+filename = 'transport'
 # First element of cross section is the total cross section. The rest is the
 # scattering cross section
-cross_section = np.array([0.01, 0.00999999])
+cross_section = np.array([[[0.01, 0.00999999]]])
 
 if grid_x.shape != grid_y.shape:
-    utils.abort("size of grid_x is not equal to size grid_y.")
+    raise AssertionError('Size of grid_x is not equal to size grid_y.')
 
-if quad_type == "GLC":
+if quad_type == 'GLC':
     quad = GLC.GLC(sn,L_max,galerkin)
-elif quad_type == "LS":
+elif quad_type == 'LS':
     quad = LS.LS(sn,L_max,galerkin)
 else:
-    utils.Abort("This quadrature does not exist.")
-dof_handler = DOF_HANDLER.DOF_HANDLER(nx_cells,ny_cells,grid_x,grid_y,fe_type)
-transport = TRANSPORT.TRANSPORT(dof_handler,quad,cross_section,solver_type,
+    raise NotImplementedError('This quadrature is not implented')
+dof_handler = DOF_HANDLER.DOF_HANDLER(nx_cells, ny_cells, grid_x, grid_y,
+        fe_type, cross_section, quad.n_mom)
+transport = TRANSPORT.TRANSPORT(dof_handler,quad,solver_type,
     prec)
 
 lambda_x = np.linspace(0,np.pi,N)

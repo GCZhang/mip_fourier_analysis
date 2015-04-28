@@ -9,14 +9,12 @@
 """Base class for the finite elements"""
 
 import numpy as np
-import utils
 
-class FINITE_ELEMENT(object) :
+class FINITE_ELEMENT:
   """Base class for the finite elements."""
 
   def __init__(self,x,y,fe_id) :
 
-    super(FINITE_ELEMENT,self).__init__()
     self.x = x
     self.y = y
     x_1 = x[2]-x[0]

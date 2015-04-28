@@ -11,15 +11,13 @@
 import numpy as np
 import scipy.linalg
 import scipy.misc as sci
-import utils
 
-class QUADRATURE(object)  :
+class QUADRATURE:
   """Build the quadrature and the Galerkin version of the quadrature. Create 
   the M and D matrices."""
 
   def __init__(self,sn,L_max,galerkin) :
 
-    super(QUADRATURE,self).__init__()
     self.sn = sn
     self.n_dir = int(self.sn*(self.sn+2)/2)
     self.galerkin = galerkin
@@ -27,7 +25,7 @@ class QUADRATURE(object)  :
     if (self.galerkin==True) :
       self.n_mom = self.n_dir
       if (sn!=L_max) :
-        utils.Abort("sn!=L_max")
+        raise AssertionError('sn!=L_max')
     else :
       self.n_mom = int((self.L_max+1)*(self.L_max+2)/2)
     self.Build_quadrature()

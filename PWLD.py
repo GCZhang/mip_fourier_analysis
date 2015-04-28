@@ -9,15 +9,14 @@
 """Contain the PWLD finite elements."""
 
 import numpy as np
-import utils
 import FINITE_ELEMENT as FE
 
-class PWLD(FE.FINITE_ELEMENT) :
+class PWLD(FE.FINITE_ELEMENT):
   """Contain the PWLD finite elements for quadrangles"""
 
   def __init__(self,x,y,fe_id) :
 
-    super(PWLD,self).__init__(x,y,fe_id)
+    FE.FINITE_ELEMENT.__init__(self,x,y,fe_id)
     self.x_c = 0.25*(self.x[0]+self.x[1]+self.x[2]+self.x[3])
     self.y_c = 0.25*(self.y[0]+self.y[1]+self.y[2]+self.y[3])
     self.Build_pwld_1d()

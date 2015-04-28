@@ -9,10 +9,9 @@
 """Contain the BLD finite elements."""
 
 import numpy as np
-import utils
 import FINITE_ELEMENT as FE
 
-class BLD(FE.FINITE_ELEMENT) :
+class BLD(FE.FINITE_ELEMENT):
   """Contain the BLD finite elements :
     3--2
     |  |
@@ -21,7 +20,7 @@ class BLD(FE.FINITE_ELEMENT) :
 
   def __init__(self,x,y,fe_id) :
 
-    super(BLD,self).__init__(x,y,fe_id)
+    FE.FINITE_ELEMENT.__init__(self,x,y,fe_id)
     self.delta_x = self.x[1]-self.x[0]
     self.delta_y = self.y[3]-self.y[0]
     self.Build_bld_1d()

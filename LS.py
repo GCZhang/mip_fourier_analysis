@@ -10,14 +10,13 @@
 
 import numpy as np
 import QUADRATURE as QUAD
-import utils
 
-class LS(QUAD.QUADRATURE) :
+class LS(QUAD.QUADRATURE):
   """Build the Level Symmetric quadrature up to order 12."""
 
   def __init__(self,sn,L_max,galerkin) :
 
-    super(LS,self).__init__(sn,L_max,galerkin)
+    QUAD.QUADRATURE.__init__(self,sn,L_max,galerkin)
 
 #----------------------------------------------------------------------------#
 
